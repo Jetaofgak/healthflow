@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # --- 1. Base de Données ---
+  db:
+    image: postgres:18
+    container_name: healthflow_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qwerty
+      POSTGRES_DB: healthflow_ms
+    ports:
+      - "5433:5432" # On map le 5432 du container sur ton 5433 local
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # --- 2. Java Proxy FHIR ---
+  proxy-fhir:
+    build: ./healthflow
+    container_name: proxy_fhir
+    ports: ["8081:8081"]
+    depends_on: [db]
+    environment:
+      # "db" est le nom du service ci-dessus, Docker gère la résolution DNS
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/healthflow_ms
+      SPRING_DATASOURCE_PASSWORD: password
+
+  # --- 3. Python DeID ---
+  deid:
+    build: ./healthflow-deid
+    container_name: deid_service
+    ports: ["8082:8082"]
+    depends_on: [db]
+    command: uvicorn main:app --host 0.0.0.0 --port 8082
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/healthflow_ms
+
+  # --- 4. Python Featurizer ---
+  featurizer:
+    build: ./healthflow-featurizer
+    container_name: feat_service
+    ports: ["8083:8083"]
+    depends_on: [db]
+    command: uvicorn main:app --host 0.0.0.0 --port 8083
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/healthflow_ms
+
+  # --- 5. Python Model ---
+  model:
+    build: ./healthflow-model
+    container_name: model_service
+    ports: ["8084:8084"]
+    depends_on: [db]
+    command: uvicorn main:app --host 0.0.0.0 --port 8084
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/healthflow_ms
+
+  # --- 6. Python API Gateway ---
+  api:
+    build: ./healthflow-api
+    container_name: api_service
+    ports: ["8085:8085"]
+    depends_on: [db]
+    command: uvicorn main:app --host 0.0.0.0 --port 8085
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/healthflow_ms
+# 7. AUDIT FAIRNESS (Python) - Port 8086
+  audit:
+    build: ./healthflow-audit
+    container_name: audit_service
+    ports: ["8086:8086"]
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uvicorn main:app --host 0.0.0.0 --port 8086
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/healthflow_ms
+    networks:
+      - healthflow_net
+
+
+  # 8. DASHBOARD (Streamlit) - Port 8501
+
+  dashboard:
+    build: ./healthflow-dashboard
+    container_name: dashboard_ui
+    ports: ["8501:8501"]
+    depends_on:
+      - api
+    command: streamlit run app.py
+    environment:
+      API_URL: "http://api:8085" # Communique en interne avec le container API
+    networks:
+      - healthflow_net
+
+volumes:
+  postgres_data:
+
+networks:
+  healthflow_net:
+    driver: bridge
