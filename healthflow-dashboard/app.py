@@ -2,9 +2,9 @@ import streamlit as st
 import requests
 import pandas as pd
 import json
-
+import os
 # Config
-API_URL = "http://localhost:8085" # L'API sécurisée
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8085") # L'API sécurisée
 TOKEN = None
 
 st.set_page_config(page_title="HealthFlow AI Dashboard", layout="wide")
