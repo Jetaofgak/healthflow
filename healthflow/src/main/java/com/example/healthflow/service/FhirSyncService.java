@@ -15,13 +15,15 @@ public class FhirSyncService {
     private final FhirBundleRepository repository;
     private final IGenericClient fhirClient;
     private final FhirContext ctx;
-
-    public FhirSyncService(FhirBundleRepository repository) {
+    
+    public FhirSyncService(FhirBundleRepository repository, 
+                           @Value("${fhir.server.url:https://hapi.fhir.org/baseR4}") String fhirServerUrl) {
         this.repository = repository;
-
-        // Initialisation HAPI FHIR (vers un serveur de test public pour commencer)
         this.ctx = FhirContext.forR4();
-        this.fhirClient = ctx.newRestfulGenericClient("https://hapi.fhir.org/baseR4");
+        
+        // On utilise la variable injectée
+        this.fhirClient = ctx.newRestfulGenericClient(fhirServerUrl);
+        System.out.println("Connecting to FHIR Server: " + fhirServerUrl);
     }
 
     public String syncPatientData(String patientId) {
@@ -49,4 +51,5 @@ public class FhirSyncService {
 
         return "Données synchronisées pour le patient " + patientId;
     }
+
 }
