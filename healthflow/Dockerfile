@@ -1,24 +1,17 @@
-# --- Étape 1 : Build (Compilation) ---
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# Copier le pom.xml et télécharger les dépendances (cache)
-COPY pom.xml .
-# Cette ligne télécharge les dépendances sans copier tout le code (optimisation)
-RUN mvn dependency:go-offline
+# On utilise le chemin complet depuis la racine du repo
+COPY healthflow/pom.xml .
+# (Optionnel, on peut sauter le go-offline pour tester vite)
 
-# Copier le code source
-COPY . .
+COPY healthflow/src ./src
 
-# Compiler le projet (crée le dossier target/)
-RUN mvn clean package -DskipTests
+# Il faut exécuter maven là où est le pom
+RUN mvn -f pom.xml clean package -DskipTests
 
-# --- Étape 2 : Run (Exécution) ---
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-
-# Copier le jar généré depuis l'étape de build
 COPY --from=build /app/target/*.jar app.jar
-
 EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "app.jar"]
