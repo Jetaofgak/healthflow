@@ -1,5 +1,5 @@
 # Utiliser une image Java légère
-FROM openjdk:25-jdk-slim
+FROM openjdk:23-jdk-slim
 WORKDIR /app
 # On copie le JAR généré (vérifie le nom dans ton dossier target/)
 COPY target/*.jar app.jar
