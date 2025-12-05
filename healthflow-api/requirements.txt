@@ -1,3 +1,6 @@
-python-jose[cryptography]
-passlib[bcrypt]
-python-multipart
+fastapi
+uvicorn
+psycopg2-binary
+sqlalchemy
+pandas
+python-dotenv
