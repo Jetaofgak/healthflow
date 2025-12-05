@@ -1,5 +1,5 @@
 # Utiliser une image Java légère
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jdk-alpine
 WORKDIR /app
 # On copie le JAR généré (vérifie le nom dans ton dossier target/)
 COPY target/*.jar app.jar
